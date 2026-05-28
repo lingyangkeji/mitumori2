@@ -27,9 +27,21 @@ interface MainItemState {
   subItems: Record<string, SubItemState>;
 }
 
+interface DescriptionOption {
+  key: string;
+  text: string;
+}
+
+interface DeliveryOption {
+  key: string;
+  label: string;
+}
+
 interface AppState {
   customerName: string;
   mainItems: Record<string, MainItemState>;
+  selectedDescriptions: Set<string>;
+  selectedDelivery: string | null;
   activeInputKey: string | null; // tracks which input is focused for the keyboard
 }
 
@@ -108,6 +120,19 @@ const MAIN_ITEMS: MainItemConfig[] = [
 const TAX_RATE = 0.1;
 
 // ─── State ───────────────────────────────────────────────────────────
+const DESCRIPTIONS: DescriptionOption[] = [
+  { key: 'desc1', text: '画像不鮮明、入力は時間かかります。' },
+  { key: 'desc2', text: '多数の大きな表があり、作業は時間かかります。' },
+  { key: 'desc3', text: '背景に透かしがあり、ＯＣＲの邪魔になり、全部手入力が必要で、時間かかります。' },
+  { key: 'desc4', text: 'ＰＤＦから書き出したＷｏｒｄファイルに表は多数崩れました。表の新規作成は時間かかります。' },
+];
+
+const DELIVERIES: DeliveryOption[] = [
+  { key: '1day', label: '納期：１日間。' },
+  { key: '2day', label: '納期：2日間。' },
+  { key: '3day', label: '納期：3日間。' },
+];
+
 function createInitialState(): AppState {
   const mainItems: Record<string, MainItemState> = {};
   for (const main of MAIN_ITEMS) {
@@ -122,7 +147,13 @@ function createInitialState(): AppState {
     }
     mainItems[main.key] = { selected: false, subItems };
   }
-  return { customerName: '', mainItems, activeInputKey: null };
+  return {
+    customerName: '',
+    mainItems,
+    selectedDescriptions: new Set(),
+    selectedDelivery: null,
+    activeInputKey: null,
+  };
 }
 
 const state: AppState = createInitialState();
@@ -323,6 +354,36 @@ function renderMainContent(): void {
         </div>
       ` : ''}
 
+      <!-- 説明 Section -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mt-4">
+        <h3 class="text-base font-semibold text-slate-700 mb-3">説明</h3>
+        <div class="space-y-2.5">
+          ${DESCRIPTIONS.map(d => `
+            <label class="flex items-start gap-2.5 cursor-pointer group">
+              <input type="checkbox" data-action="toggle-description" data-key="${d.key}"
+                ${state.selectedDescriptions.has(d.key) ? 'checked' : ''}
+                class="mt-1 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+              <span class="text-sm text-slate-600 group-hover:text-slate-800 leading-relaxed">${d.text}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- 納期 Section -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mt-4">
+        <h3 class="text-base font-semibold text-slate-700 mb-3">納期</h3>
+        <div class="space-y-2.5">
+          ${DELIVERIES.map(d => `
+            <label class="flex items-center gap-2.5 cursor-pointer group">
+              <input type="radio" name="delivery" data-action="select-delivery" data-key="${d.key}"
+                ${state.selectedDelivery === d.key ? 'checked' : ''}
+                class="w-4 h-4 border-slate-300 text-blue-600 focus:ring-blue-500" />
+              <span class="text-sm text-slate-600 group-hover:text-slate-800">${d.label}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+
       <!-- Output Button -->
       <button data-action="generate-output" ${!hasAnySelection() ? 'disabled' : ''}
         class="w-full py-3.5 rounded-xl font-semibold text-white transition-all
@@ -456,6 +517,16 @@ function generateOutputText(): string {
 
   lines.push(`${state.customerName}様`);
   lines.push('　いつもお世話になっております。');
+
+  // 説明（選択されている場合、お世話になっておりますの次の行）
+  if (state.selectedDescriptions.size > 0) {
+    for (const desc of DESCRIPTIONS) {
+      if (state.selectedDescriptions.has(desc.key)) {
+        lines.push(desc.text);
+      }
+    }
+  }
+
   lines.push('お見積りします。');
   lines.push('');
 
@@ -490,6 +561,15 @@ function generateOutputText(): string {
   lines.push(`合計：${total.toLocaleString('ja-JP')}円`);
   lines.push(`税込合計（10%）：${totalWithTax.toLocaleString('ja-JP')}円`);
   lines.push('');
+
+  // 納期（選択されている場合、ご確認の前の行）
+  if (state.selectedDelivery) {
+    const delivery = DELIVERIES.find(d => d.key === state.selectedDelivery);
+    if (delivery) {
+      lines.push(delivery.label);
+    }
+  }
+
   lines.push('ご確認、お願いします。');
   lines.push('李　寧章');
 
@@ -608,6 +688,20 @@ function setupEvents(): void {
         if (!hasAnySelection()) break;
         const text = generateOutputText();
         showOutputModal(text);
+        break;
+      }
+      case 'toggle-description': {
+        const key = action.getAttribute('data-key')!;
+        if (state.selectedDescriptions.has(key)) {
+          state.selectedDescriptions.delete(key);
+        } else {
+          state.selectedDescriptions.add(key);
+        }
+        break;
+      }
+      case 'select-delivery': {
+        const key = action.getAttribute('data-key')!;
+        state.selectedDelivery = key;
         break;
       }
     }
