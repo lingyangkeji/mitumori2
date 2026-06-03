@@ -125,12 +125,15 @@ const DESCRIPTIONS: DescriptionOption[] = [
   { key: 'desc2', text: '多数の大きな表があり、作業は時間かかります。' },
   { key: 'desc3', text: '背景に透かしがあり、ＯＣＲの邪魔になり、全部手入力が必要で、時間かかります。' },
   { key: 'desc4', text: 'ＰＤＦから書き出したＷｏｒｄファイルに表は多数崩れました。表の新規作成は時間かかります。' },
+  { key: 'desc5', text: 'ご希望の料金は多少厳しいようです。ご予算がありましたら、以下の見積もりでいかがでしょうか。ご予算は厳しいなら、ご提示の金額で対応させていただきます。' },
 ];
 
 const DELIVERIES: DeliveryOption[] = [
   { key: '1day', label: '納期：１日間。' },
   { key: '2day', label: '納期：2日間。' },
   { key: '3day', label: '納期：3日間。' },
+  { key: 'flexible', label: 'ご希望の納期で対応できます。' },
+  { key: 'delay1', label: 'ご希望の納期は多少厳しいようです。１日間延ばすことが可能でしょうか' },
 ];
 
 function createInitialState(): AppState {
