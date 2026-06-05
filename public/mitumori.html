@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>お見積り作成</title>
+  <style>
+    :root {
+      --background: #f8fafc;
+      --foreground: #1e293b;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #eff6ff;
+      --muted: #64748b;
+      --accent: #0ea5e9;
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--background);
+      color: var(--foreground);
+      font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', Meiryo, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* Layout */
+    .container { max-width: 672px; margin: 0 auto; padding: 32px 16px 128px; }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border: 1px solid var(--border);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--foreground);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--primary); display: inline-block;
+    }
+    .card-title .unit-label {
+      font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 4px;
+    }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 32px; }
+    .header h1 { font-size: 24px; font-weight: 700; color: var(--foreground); letter-spacing: -0.5px; }
+    .header p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* Customer input */
+    .customer-input {
+      width: 100%;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 15px;
+      color: var(--foreground);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      font-family: inherit;
+    }
+    .customer-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+
+    /* Main item chips */
+    .chip-wrap { display: flex; flex-wrap: wrap; gap: 12px; }
+    .chip {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; border-radius: 12px;
+      border: 2px solid var(--border); background: #f8fafc;
+      cursor: pointer; transition: all 0.15s; user-select: none;
+    }
+    .chip:hover { border-color: #cbd5e1; }
+    .chip.active { border-color: var(--primary); background: var(--primary-light); color: #1d4ed8; }
+    .chip span { font-size: 14px; font-weight: 500; }
+
+    /* Checkbox & Radio */
+    .custom-check { width: 20px; height: 20px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
+
+    /* Sub-item card */
+    .sub-card {
+      border-radius: 12px; border: 1px solid #f1f5f9; background: #f8fafc;
+      padding: 12px 16px; margin-bottom: 8px;
+      transition: all 0.15s; animation: slideDown 0.2s ease-out;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .sub-card.selected { border-color: #bfdbfe; background: rgba(239,246,255,0.5); }
+    .sub-card.active-input { border-color: #fcd34d; box-shadow: 0 0 0 2px rgba(253,224,71,0.2); background: rgba(255,251,235,0.5); }
+    .sub-card .label { font-size: 14px; font-weight: 500; color: var(--foreground); min-width: 160px; }
+    .sub-card .right { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+    .sub-card .small-text { font-size: 12px; color: var(--muted); }
+    .sub-card .separator { color: #cbd5e1; margin: 0 4px; }
+    .sub-card .subtotal {
+      font-size: 14px; font-weight: 600; min-width: 80px; text-align: right;
+    }
+    .subtotal.has-value { color: var(--primary); }
+    .subtotal.no-value { color: #cbd5e1; }
+
+    /* Inputs */
+    .page-input {
+      width: 72px; text-align: center;
+      border: 2px solid var(--border); border-radius: 8px;
+      padding: 6px 8px; font-size: 15px; font-weight: 600;
+      color: var(--foreground); background: #fff; cursor: pointer;
+      outline: none; transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    .page-input:hover { border-color: var(--primary); }
+    .page-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+    .page-input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .price-input {
+      width: 96px; text-align: right;
+      border: 1.5px solid var(--border); border-radius: 6px;
+      padding: 4px 8px; font-size: 14px; font-weight: 500;
+      color: var(--foreground); background: #fff; outline: none;
+      transition: border-color 0.15s; font-family: inherit;
+    }
+    .price-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.12); }
+    .price-input:disabled { opacity: 0.4; }
+
+    /* Totals */
+    .total-row { display: flex; justify-content: space-between; align-items: center; }
+    .total-row + .total-row { margin-top: 12px; }
+    .total-label { font-size: 15px; color: var(--muted); }
+    .total-value { font-size: 17px; font-weight: 600; color: var(--foreground); }
+    .total-value.grand { font-size: 20px; font-weight: 700; color: var(--primary); }
+    .total-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+    /* Description / Delivery */
+    .option-item { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 10px; }
+    .option-item:last-child { margin-bottom: 0; }
+    .option-item:hover .option-text { color: var(--foreground); }
+    .option-text { font-size: 14px; color: var(--muted); line-height: 1.6; transition: color 0.15s; }
+    .option-radio { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; margin-top: 3px; }
+
+    /* Output button */
+    .output-btn {
+      width: 100%; padding: 14px; border-radius: 12px; border: none;
+      font-size: 15px; font-weight: 600; color: #fff; cursor: pointer;
+      background: var(--primary); transition: all 0.15s;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.25);
+      margin-top: 16px;
+    }
+    .output-btn:hover { background: var(--primary-hover); }
+    .output-btn:active { transform: scale(0.98); }
+    .output-btn:disabled { background: #cbd5e1; cursor: not-allowed; box-shadow: none; }
+
+    /* Keyboard overlay */
+    .num-keyboard-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      z-index: 1000; display: flex; align-items: flex-end; justify-content: center;
+      animation: fadeIn 0.15s ease-out;
+    }
+    .num-keyboard-panel {
+      background: #fff; border-radius: 16px 16px 0 0;
+      width: 100%; max-width: 420px; padding: 12px 8px 24px;
+      animation: slideUp 0.2s ease-out;
+    }
+    .kb-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px; padding: 0 8px;
+    }
+    .kb-header .kb-label { font-size: 14px; font-weight: 500; color: var(--muted); }
+    .kb-header .kb-value-wrap {
+      display: flex; align-items: center; gap: 8px;
+      background: #f1f5f9; border-radius: 8px; padding: 6px 12px;
+    }
+    .kb-header .kb-value { font-size: 20px; font-weight: 700; color: var(--primary); }
+    .kb-header .kb-unit { font-size: 12px; color: var(--muted); }
+    .kb-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    }
+    .kb-key {
+      display: flex; align-items: center; justify-content: center;
+      height: 52px; border-radius: 10px; font-size: 22px; font-weight: 500;
+      cursor: pointer; user-select: none; transition: background 0.1s, transform 0.08s;
+      background: #f1f5f9; color: var(--foreground);
+    }
+    .kb-key:active { transform: scale(0.95); background: #e2e8f0; }
+    .kb-key-delete { background: #fee2e2; color: #dc2626; }
+    .kb-key-delete:active { background: #fecaca; }
+    .kb-key-confirm { background: var(--primary); color: #fff; }
+    .kb-key-confirm:active { background: var(--primary-hover); }
+    .kb-key-wide-2 { grid-column: span 2; }
+    .kb-key-tall { grid-row: span 2; }
+
+    /* Output modal */
+    .output-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 1100; display: flex; align-items: center; justify-content: center;
+      animation: fadeIn 0.15s ease-out; padding: 16px;
+    }
+    .output-panel {
+      background: #fff; border-radius: 16px; width: 100%; max-width: 560px;
+      max-height: 80vh; display: flex; flex-direction: column;
+      animation: scaleIn 0.2s ease-out; overflow: hidden;
+    }
+    .output-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px; border-bottom: 1px solid var(--border);
+    }
+    .output-header h3 { font-size: 15px; font-weight: 600; color: var(--foreground); }
+    .btn-copy {
+      font-size: 13px; font-weight: 500; color: var(--primary); cursor: pointer;
+      padding: 6px 12px; border-radius: 8px; border: none; background: none;
+      transition: background 0.15s;
+    }
+    .btn-copy:hover { background: var(--primary-light); }
+    .btn-copy.copied { color: var(--success); }
+    .output-content {
+      white-space: pre-wrap;
+      font-family: 'Hiragino Sans', 'Noto Sans JP', Meiryo, sans-serif;
+      font-size: 14px; line-height: 1.8; padding: 24px;
+      overflow-y: auto; flex: 1;
+    }
+    .output-footer { padding: 16px 24px; border-top: 1px solid #f1f5f9; }
+    .btn-close {
+      width: 100%; padding: 10px; border-radius: 12px;
+      background: #f1f5f9; color: var(--muted); font-weight: 500;
+      border: none; cursor: pointer; font-size: 14px;
+      transition: background 0.15s; font-family: inherit;
+    }
+    .btn-close:hover { background: #e2e8f0; }
+
+    /* Animations */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="kb-container"></div>
+
+  <script>
+    // ─── Config ────────────────────────────────────────────────────────
+    var MAIN_ITEMS = [
+      {
+        key: 'word', label: 'Word化', unit: '頁',
+        subItems: [
+          { key: 'input', label: '入力必要', defaultPrice: 480, type: 'per-unit' },
+          { key: 'selectable', label: '文字選択可', defaultPrice: 280, type: 'per-unit' },
+          { key: 'link', label: 'リンク作成', defaultPrice: 100, type: 'per-unit' },
+          { key: 'preprocess', label: '前処理', defaultPrice: 100, type: 'per-unit' },
+          { key: 'layout', label: '翻訳後レイアウト調整', defaultPrice: 280, type: 'per-unit' },
+          { key: 'beta', label: 'ベタ打ち', defaultPrice: 680, type: 'per-unit' },
+          { key: 'ocr', label: '画像のテクスト化', defaultPrice: 480, type: 'per-unit' }
+        ]
+      },
+      {
+        key: 'ppt', label: 'PPT化', unit: '頁',
+        subItems: [
+          { key: 'input', label: '入力必要', defaultPrice: 480, type: 'per-unit' },
+          { key: 'selectable', label: '文字選択可', defaultPrice: 280, type: 'per-unit' },
+          { key: 'link', label: 'リンク作成', defaultPrice: 100, type: 'per-unit' },
+          { key: 'preprocess', label: '前処理', defaultPrice: 100, type: 'per-unit' },
+          { key: 'layout', label: '翻訳後レイアウト調整', defaultPrice: 280, type: 'per-unit' },
+          { key: 'beta', label: 'ベタ打ち', defaultPrice: 680, type: 'per-unit' },
+          { key: 'ocr', label: '画像のテクスト化', defaultPrice: 480, type: 'per-unit' }
+        ]
+      },
+      {
+        key: 'excel', label: 'Excell化', unit: '頁',
+        subItems: [
+          { key: 'input', label: '入力必要', defaultPrice: 480, type: 'per-unit' },
+          { key: 'selectable', label: '文字選択可', defaultPrice: 280, type: 'per-unit' },
+          { key: 'link', label: 'リンク作成', defaultPrice: 100, type: 'per-unit' },
+          { key: 'preprocess', label: '前処理', defaultPrice: 100, type: 'per-unit' },
+          { key: 'layout', label: '翻訳後レイアウト調整', defaultPrice: 280, type: 'per-unit' },
+          { key: 'beta', label: 'ベタ打ち', defaultPrice: 680, type: 'per-unit' },
+          { key: 'ocr', label: '画像のテクスト化', defaultPrice: 480, type: 'per-unit' }
+        ]
+      },
+      {
+        key: 'tm-translate', label: 'TM作成', unit: 'ワード',
+        subItems: [
+          { key: 'word-file', label: 'Wordファイル', defaultPrice: 0.7, type: 'per-unit' },
+          { key: 'ppt-file', label: 'PPTファイル', defaultPrice: 0.8, type: 'per-unit' },
+          { key: 'excel-file', label: 'Excellファイル', defaultPrice: 0.8, type: 'per-unit' },
+          { key: 'pdf-file', label: 'PDFファイル', defaultPrice: 0.9, type: 'per-unit' },
+          { key: 'pdf-col', label: 'PDF段組みファイル', defaultPrice: 1.5, type: 'per-unit' },
+          { key: 'image', label: '画像の部分', defaultPrice: 0, type: 'lump-sum' }
+        ]
+      },
+      {
+        key: 'tm-maru', label: 'メモリ作成', unit: 'ワード',
+        subItems: [
+          { key: 'word-file', label: 'Wordファイル', defaultPrice: 1.0, type: 'per-unit' },
+          { key: 'ppt-file', label: 'PPTファイル', defaultPrice: 1.5, type: 'per-unit' },
+          { key: 'excel-file', label: 'Excellファイル', defaultPrice: 1.5, type: 'per-unit' },
+          { key: 'pdf-file', label: 'PDFファイル', defaultPrice: 1.5, type: 'per-unit' },
+          { key: 'pdf-col', label: '複雑PDF', defaultPrice: 2.0, type: 'per-unit' },
+          { key: 'image', label: '画像の部分', defaultPrice: 0, type: 'lump-sum' }
+        ]
+      }
+    ];
+
+    var DESCRIPTIONS = [
+      { key: 'desc1', text: '画像不鮮明、入力は時間かかります。' },
+      { key: 'desc2', text: '多数の大きな表があり、作業は時間かかります。' },
+      { key: 'desc3', text: '背景に透かしがあり、ＯＣＲの邪魔になり、全部手入力が必要で、時間かかります。' },
+      { key: 'desc4', text: 'ＰＤＦから書き出したＷｏｒｄファイルに表は多数崩れました。表の新規作成は時間かかります。' },
+      { key: 'desc5', text: 'ご希望の料金は多少厳しいようです。ご予算がありましたら、以下の見積もりでいかがでしょうか。ご予算は厳しいなら、ご提示の金額で対応させていただきます。' }
+    ];
+
+    var DELIVERIES = [
+      { key: '1day', label: '納期：１日間。' },
+      { key: '2day', label: '納期：2日間。' },
+      { key: '3day', label: '納期：3日間。' },
+      { key: 'flexible', label: 'ご希望の納期で対応できます。' },
+      { key: 'delay1', label: 'ご希望の納期は多少厳しいようです。１日間延ばすことが可能でしょうか' }
+    ];
+
+    var TAX_RATE = 0.1;
+
+    // ─── State ─────────────────────────────────────────────────────────
+    var state = createInitialState();
+
+    function createInitialState() {
+      var mainItems = {};
+      for (var i = 0; i < MAIN_ITEMS.length; i++) {
+        var main = MAIN_ITEMS[i];
+        var subItems = {};
+        for (var j = 0; j < main.subItems.length; j++) {
+          var sub = main.subItems[j];
+          subItems[sub.key] = { selected: false, price: sub.defaultPrice, quantity: 0, lumpSum: 0 };
+        }
+        mainItems[main.key] = { selected: false, subItems: subItems };
+      }
+      return {
+        customerName: '',
+        mainItems: mainItems,
+        selectedDescriptions: {},
+        selectedDelivery: null,
+        activeInputKey: null
+      };
+    }
+
+    // ─── Helpers ───────────────────────────────────────────────────────
+    function formatPrice(price) {
+      return price.toLocaleString('ja-JP') + '円';
+    }
+
+    function formatPriceValue(price) {
+      if (Number.isInteger(price)) return String(price);
+      return String(price);
+    }
+
+    function getMainConfig(key) {
+      for (var i = 0; i < MAIN_ITEMS.length; i++) {
+        if (MAIN_ITEMS[i].key === key) return MAIN_ITEMS[i];
+      }
+      return null;
+    }
+
+    function getSubConfig(mainKey, subKey) {
+      var main = getMainConfig(mainKey);
+      if (!main) return null;
+      for (var i = 0; i < main.subItems.length; i++) {
+        if (main.subItems[i].key === subKey) return main.subItems[i];
+      }
+      return null;
+    }
+
+    function calcSubtotal(mainKey, subKey) {
+      var ss = state.mainItems[mainKey].subItems[subKey];
+      var subConfig = getSubConfig(mainKey, subKey);
+      if (subConfig.type === 'lump-sum') return ss.lumpSum;
+      return ss.price * ss.quantity;
+    }
+
+    function calcTotal() {
+      var total = 0;
+      for (var i = 0; i < MAIN_ITEMS.length; i++) {
+        var main = MAIN_ITEMS[i];
+        var ms = state.mainItems[main.key];
+        if (!ms.selected) continue;
+        for (var j = 0; j < main.subItems.length; j++) {
+          var sub = main.subItems[j];
+          if (ms.subItems[sub.key].selected) {
+            total += calcSubtotal(main.key, sub.key);
+          }
+        }
+      }
+      return total;
+    }
+
+    function hasAnySelection() {
+      for (var i = 0; i < MAIN_ITEMS.length; i++) {
+        var main = MAIN_ITEMS[i];
+        var ms = state.mainItems[main.key];
+        if (!ms.selected) continue;
+        for (var j = 0; j < main.subItems.length; j++) {
+          if (ms.subItems[main.subItems[j].key].selected) return true;
+        }
+      }
+      return false;
+    }
+
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function hasDescription(key) {
+      return !!state.selectedDescriptions[key];
+    }
+
+    function toggleDescription(key) {
+      if (state.selectedDescriptions[key]) {
+        delete state.selectedDescriptions[key];
+      } else {
+        state.selectedDescriptions[key] = true;
+      }
+    }
+
+    // ─── Render ────────────────────────────────────────────────────────
+    function renderSubItem(main, sub) {
+      var ms = state.mainItems[main.key];
+      var ss = ms.subItems[sub.key];
+      var isActive = state.activeInputKey === main.key + ':' + sub.key;
+      var classes = 'sub-card';
+      if (isActive) classes += ' active-input';
+      else if (ss.selected) classes += ' selected';
+
+      if (sub.type === 'lump-sum') {
+        var subtotal = ss.selected && ss.lumpSum > 0 ? ss.lumpSum : 0;
+        return '<div class="' + classes + '">' +
+          '<input type="checkbox" class="custom-check" data-action="toggle-sub" data-main="' + main.key + '" data-sub="' + sub.key + '"' + (ss.selected ? ' checked' : '') + ' />' +
+          '<span class="label">' + sub.label + '</span>' +
+          '<div class="right">' +
+            '<span class="small-text">一式金額</span>' +
+            '<input type="text" class="page-input" readonly data-action="open-keyboard" data-main="' + main.key + '" data-sub="' + sub.key + '" data-input-type="lump-sum" value="' + (ss.lumpSum > 0 ? ss.lumpSum : '') + '" placeholder="0"' + (ss.selected ? '' : ' disabled') + ' />' +
+            '<span class="small-text">円</span>' +
+            '<span class="separator">＝</span>' +
+            '<span class="subtotal ' + (subtotal > 0 ? 'has-value' : 'no-value') + '">' + (subtotal > 0 ? formatPrice(subtotal) : '−') + '</span>' +
+          '</div>' +
+        '</div>';
+      }
+
+      var subtotal2 = ss.selected && ss.quantity > 0 ? calcSubtotal(main.key, sub.key) : 0;
+      return '<div class="' + classes + '">' +
+        '<input type="checkbox" class="custom-check" data-action="toggle-sub" data-main="' + main.key + '" data-sub="' + sub.key + '"' + (ss.selected ? ' checked' : '') + ' />' +
+        '<span class="label">' + sub.label + '</span>' +
+        '<div class="right">' +
+          '<input type="number" class="price-input" data-action="change-price" data-main="' + main.key + '" data-sub="' + sub.key + '" value="' + formatPriceValue(ss.price) + '" min="0" step="0.1"' + (ss.selected ? '' : ' disabled') + ' />' +
+          '<span class="small-text">円</span>' +
+          '<span class="separator">×</span>' +
+          '<input type="text" class="page-input" readonly data-action="open-keyboard" data-main="' + main.key + '" data-sub="' + sub.key + '" data-input-type="quantity" value="' + (ss.quantity > 0 ? ss.quantity : '') + '" placeholder="0"' + (ss.selected ? '' : ' disabled') + ' />' +
+          '<span class="small-text">' + main.unit + '</span>' +
+          '<span class="separator">＝</span>' +
+          '<span class="subtotal ' + (subtotal2 > 0 ? 'has-value' : 'no-value') + '">' + (subtotal2 > 0 ? formatPrice(subtotal2) : '−') + '</span>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function renderMainContent() {
+      var app = document.getElementById('app');
+      if (!app) return;
+
+      var total = calcTotal();
+      var tax = Math.floor(total * TAX_RATE);
+      var totalWithTax = total + tax;
+
+      var html = '<div class="container">';
+
+      // Header
+      html += '<div class="header"><h1>お見積り作成</h1><p>項目を選択して見積りを作成します</p></div>';
+
+      // Customer name
+      html += '<div class="card">' +
+        '<label style="display:block;font-size:15px;font-weight:600;color:var(--foreground);margin-bottom:12px;">顧客名</label>' +
+        '<input type="text" id="customer-name" data-action="change-customer-name" class="customer-input" placeholder="顧客名を入力してください" value="' + escapeHtml(state.customerName) + '" />' +
+      '</div>';
+
+      // Main items
+      html += '<div class="card"><div class="card-title">項目選択</div><div class="chip-wrap">';
+      for (var i = 0; i < MAIN_ITEMS.length; i++) {
+        var main = MAIN_ITEMS[i];
+        var isSelected = state.mainItems[main.key].selected;
+        html += '<label class="chip' + (isSelected ? ' active' : '') + '">' +
+          '<input type="checkbox" class="custom-check" data-action="toggle-main" data-key="' + main.key + '"' + (isSelected ? ' checked' : '') + ' />' +
+          '<span>' + main.label + '</span></label>';
+      }
+      html += '</div></div>';
+
+      // Sub items for selected main items
+      for (var i = 0; i < MAIN_ITEMS.length; i++) {
+        var main = MAIN_ITEMS[i];
+        if (!state.mainItems[main.key].selected) continue;
+        html += '<div class="card"><div class="card-title"><span class="dot"></span>' + main.label + '<span class="unit-label">（単位：' + main.unit + '）</span></div>';
+        for (var j = 0; j < main.subItems.length; j++) {
+          html += renderSubItem(main, main.subItems[j]);
+        }
+        html += '</div>';
+      }
+
+      // Totals
+      if (hasAnySelection()) {
+        html += '<div class="card">' +
+          '<div class="total-row"><span class="total-label">小計</span><span class="total-value">' + formatPrice(total) + '</span></div>' +
+          '<div class="total-row"><span class="total-label">消費税（10%）</span><span class="total-value" style="font-size:15px;color:var(--muted);">' + formatPrice(tax) + '</span></div>' +
+          '<hr class="total-divider" />' +
+          '<div class="total-row"><span class="total-label" style="font-weight:700;">税込合計</span><span class="total-value grand">' + formatPrice(totalWithTax) + '</span></div>' +
+        '</div>';
+      }
+
+      // 説明
+      html += '<div class="card"><div class="card-title">説明</div>';
+      for (var i = 0; i < DESCRIPTIONS.length; i++) {
+        var d = DESCRIPTIONS[i];
+        html += '<label class="option-item"><input type="checkbox" class="custom-check" data-action="toggle-description" data-key="' + d.key + '"' + (hasDescription(d.key) ? ' checked' : '') + ' /><span class="option-text">' + d.text + '</span></label>';
+      }
+      html += '</div>';
+
+      // 納期
+      html += '<div class="card"><div class="card-title">納期</div>';
+      for (var i = 0; i < DELIVERIES.length; i++) {
+        var d = DELIVERIES[i];
+        html += '<label class="option-item"><input type="radio" name="delivery" class="option-radio" data-action="select-delivery" data-key="' + d.key + '"' + (state.selectedDelivery === d.key ? ' checked' : '') + ' /><span class="option-text">' + d.label + '</span></label>';
+      }
+      html += '</div>';
+
+      // Output button
+      html += '<button class="output-btn" data-action="generate-output"' + (!hasAnySelection() ? ' disabled' : '') + '>見積りテキストを出力</button>';
+
+      html += '</div>';
+      app.innerHTML = html;
+    }
+
+    function renderKeyboard() {
+      var kbContainer = document.getElementById('kb-container');
+      if (!kbContainer) return;
+
+      if (!state.activeInputKey) {
+        kbContainer.innerHTML = '';
+        return;
+      }
+
+      var parts = state.activeInputKey.split(':');
+      var activeMain = parts[0];
+      var activeSub = parts[1];
+      var mainConfig = getMainConfig(activeMain);
+      var subConfig = getSubConfig(activeMain, activeSub);
+      var ss = state.mainItems[activeMain].subItems[activeSub];
+
+      var isLumpSum = subConfig.type === 'lump-sum';
+      var inputLabel = isLumpSum ? '金額を入力' : mainConfig.unit + '数を入力';
+      var unitLabel = isLumpSum ? '円' : mainConfig.unit;
+      var displayValue = isLumpSum
+        ? (ss.lumpSum > 0 ? String(ss.lumpSum) : '')
+        : (ss.quantity > 0 ? String(ss.quantity) : '');
+
+      kbContainer.innerHTML =
+        '<div class="num-keyboard-overlay" data-action="close-keyboard-bg">' +
+          '<div class="num-keyboard-panel">' +
+            '<div class="kb-header">' +
+              '<span class="kb-label">' + inputLabel + '</span>' +
+              '<div class="kb-value-wrap">' +
+                '<span class="kb-value" id="kb-display">' + displayValue + '</span>' +
+                '<span class="kb-unit">' + unitLabel + '</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="kb-grid">' +
+              '<div class="kb-key" data-action="kb-input" data-val="7">7</div>' +
+              '<div class="kb-key" data-action="kb-input" data-val="8">8</div>' +
+              '<div class="kb-key" data-action="kb-input" data-val="9">9</div>' +
+              '<div class="kb-key kb-key-delete" data-action="kb-delete">⌫</div>' +
+              '<div class="kb-key" data-action="kb-input" data-val="4">4</div>' +
+              '<div class="kb-key" data-action="kb-input" data-val="5">5</div>' +
+              '<div class="kb-key" data-action="kb-input" data-val="6">6</div>' +
+              '<div class="kb-key" data-action="kb-clear">C</div>' +
+              '<div class="kb-key" data-action="kb-input" data-val="1">1</div>' +
+              '<div class="kb-key" data-action="kb-input" data-val="2">2</div>' +
+              '<div class="kb-key" data-action="kb-input" data-val="3">3</div>' +
+              '<div class="kb-key kb-key-confirm kb-key-tall" data-action="kb-confirm">OK</div>' +
+              '<div class="kb-key kb-key-wide-2" data-action="kb-input" data-val="0">0</div>' +
+              '<div class="kb-key" data-action="kb-input" data-val="00">00</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    function updateInputDisplay() {
+      if (!state.activeInputKey) return;
+      var parts = state.activeInputKey.split(':');
+      var mainKey = parts[0];
+      var subKey = parts[1];
+      var ss = state.mainItems[mainKey].subItems[subKey];
+      var subConfig = getSubConfig(mainKey, subKey);
+      var isLumpSum = subConfig.type === 'lump-sum';
+
+      var kbDisplay = document.getElementById('kb-display');
+      if (kbDisplay) {
+        kbDisplay.textContent = isLumpSum
+          ? (ss.lumpSum > 0 ? String(ss.lumpSum) : '')
+          : (ss.quantity > 0 ? String(ss.quantity) : '');
+      }
+
+      var inputEl = document.querySelector('input[data-action="open-keyboard"][data-main="' + mainKey + '"][data-sub="' + subKey + '"]');
+      if (inputEl) {
+        inputEl.value = isLumpSum
+          ? (ss.lumpSum > 0 ? String(ss.lumpSum) : '')
+          : (ss.quantity > 0 ? String(ss.quantity) : '');
+      }
+
+      var subtotal = ss.selected ? calcSubtotal(mainKey, subKey) : 0;
+      var subCard = inputEl ? inputEl.closest('.sub-card') : null;
+      if (subCard) {
+        var subtotalSpan = subCard.querySelector('.subtotal');
+        if (subtotalSpan) {
+          subtotalSpan.textContent = subtotal > 0 ? formatPrice(subtotal) : '−';
+          subtotalSpan.className = 'subtotal ' + (subtotal > 0 ? 'has-value' : 'no-value');
+        }
+      }
+
+      updateTotalsDisplay();
+    }
+
+    function updateTotalsDisplay() {
+      var total = calcTotal();
+      var tax = Math.floor(total * TAX_RATE);
+      var totalWithTax = total + tax;
+      var totalValues = document.querySelectorAll('.total-value');
+      if (totalValues.length >= 3) {
+        totalValues[0].textContent = formatPrice(total);
+        totalValues[1].textContent = formatPrice(tax);
+        totalValues[2].textContent = formatPrice(totalWithTax);
+      }
+    }
+
+    function render() {
+      renderMainContent();
+      renderKeyboard();
+    }
+
+    // ─── Output ────────────────────────────────────────────────────────
+    function generateOutputText() {
+      var lines = [];
+
+      lines.push(state.customerName + '様');
+      lines.push('　いつもお世話になっております。');
+
+      // 説明
+      if (Object.keys(state.selectedDescriptions).length > 0) {
+        for (var i = 0; i < DESCRIPTIONS.length; i++) {
+          if (hasDescription(DESCRIPTIONS[i].key)) {
+            lines.push(DESCRIPTIONS[i].text);
+          }
+        }
+      }
+
+      lines.push('お見積りします。');
+      lines.push('');
+
+      for (var i = 0; i < MAIN_ITEMS.length; i++) {
+        var main = MAIN_ITEMS[i];
+        var ms = state.mainItems[main.key];
+        if (!ms.selected) continue;
+
+        var selectedSubs = [];
+        for (var j = 0; j < main.subItems.length; j++) {
+          if (ms.subItems[main.subItems[j].key].selected) selectedSubs.push(main.subItems[j]);
+        }
+        if (selectedSubs.length === 0) continue;
+
+        lines.push(main.label);
+
+        for (var j = 0; j < selectedSubs.length; j++) {
+          var sub = selectedSubs[j];
+          var ss = ms.subItems[sub.key];
+          var subtotal = calcSubtotal(main.key, sub.key);
+
+          if (sub.type === 'lump-sum') {
+            lines.push(sub.label + '：' + ss.lumpSum.toLocaleString('ja-JP') + '円');
+          } else {
+            var qty = ss.quantity > 0 ? ss.quantity : 0;
+            lines.push(sub.label + '：' + ss.price + '円 × ' + qty + main.unit + ' ＝ ' + subtotal.toLocaleString('ja-JP') + '円');
+          }
+        }
+        lines.push('');
+      }
+
+      var total = calcTotal();
+      var tax = Math.floor(total * TAX_RATE);
+      var totalWithTax = total + tax;
+
+      lines.push('合計：' + total.toLocaleString('ja-JP') + '円');
+      lines.push('税込合計（10%）：' + totalWithTax.toLocaleString('ja-JP') + '円');
+      lines.push('');
+
+      // 納期
+      if (state.selectedDelivery) {
+        for (var i = 0; i < DELIVERIES.length; i++) {
+          if (DELIVERIES[i].key === state.selectedDelivery) {
+            lines.push(DELIVERIES[i].label);
+          }
+        }
+      }
+
+      lines.push('ご確認、お願いします。');
+      lines.push('李　寧章');
+
+      return lines.join('\n');
+    }
+
+    function showOutputModal(text) {
+      var overlay = document.createElement('div');
+      overlay.className = 'output-overlay';
+      overlay.innerHTML =
+        '<div class="output-panel">' +
+          '<div class="output-header">' +
+            '<h3>見積りテキスト</h3>' +
+            '<button class="btn-copy" id="btn-copy">コピー</button>' +
+          '</div>' +
+          '<div class="output-content" id="output-text">' + escapeHtml(text) + '</div>' +
+          '<div class="output-footer">' +
+            '<button class="btn-close" id="btn-close">閉じる</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(overlay);
+
+      overlay.querySelector('#btn-close').addEventListener('click', function() {
+        overlay.remove();
+      });
+
+      overlay.querySelector('#btn-copy').addEventListener('click', function() {
+        navigator.clipboard.writeText(text).then(function() {
+          var btn = overlay.querySelector('#btn-copy');
+          btn.textContent = 'コピーしました！';
+          btn.classList.add('copied');
+          setTimeout(function() {
+            btn.textContent = 'コピー';
+            btn.classList.remove('copied');
+          }, 1500);
+        }).catch(function() {
+          // Fallback for file:// protocol
+          var textarea = document.createElement('textarea');
+          textarea.value = text;
+          textarea.style.position = 'fixed';
+          textarea.style.left = '-9999px';
+          document.body.appendChild(textarea);
+          textarea.select();
+          try { document.execCommand('copy'); } catch(e) {}
+          document.body.removeChild(textarea);
+          var btn = overlay.querySelector('#btn-copy');
+          btn.textContent = 'コピーしました！';
+          btn.classList.add('copied');
+          setTimeout(function() {
+            btn.textContent = 'コピー';
+            btn.classList.remove('copied');
+          }, 1500);
+        });
+      });
+
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) overlay.remove();
+      });
+    }
+
+    // ─── Events ────────────────────────────────────────────────────────
+    function setupEvents() {
+      var app = document.getElementById('app');
+      var kbContainer = document.getElementById('kb-container');
+
+      // Main app click handler
+      app.addEventListener('click', function(e) {
+        var target = e.target;
+        var action = target.closest('[data-action]');
+        if (!action) return;
+        var actionName = action.getAttribute('data-action');
+
+        switch (actionName) {
+          case 'toggle-main': {
+            var key = action.getAttribute('data-key');
+            state.mainItems[key].selected = !state.mainItems[key].selected;
+            if (!state.mainItems[key].selected) {
+              var subKeys = Object.keys(state.mainItems[key].subItems);
+              for (var i = 0; i < subKeys.length; i++) {
+                var ss = state.mainItems[key].subItems[subKeys[i]];
+                ss.selected = false; ss.quantity = 0; ss.lumpSum = 0;
+              }
+              if (state.activeInputKey && state.activeInputKey.indexOf(key + ':') === 0) {
+                state.activeInputKey = null;
+              }
+            }
+            render();
+            break;
+          }
+          case 'toggle-sub': {
+            var mainKey = action.getAttribute('data-main');
+            var subKey = action.getAttribute('data-sub');
+            var ss = state.mainItems[mainKey].subItems[subKey];
+            ss.selected = !ss.selected;
+            if (!ss.selected) {
+              ss.quantity = 0; ss.lumpSum = 0;
+              if (state.activeInputKey === mainKey + ':' + subKey) {
+                state.activeInputKey = null;
+              }
+            }
+            render();
+            break;
+          }
+          case 'open-keyboard': {
+            var mainKey = action.getAttribute('data-main');
+            var subKey = action.getAttribute('data-sub');
+            state.activeInputKey = mainKey + ':' + subKey;
+            render();
+            break;
+          }
+          case 'generate-output': {
+            if (!hasAnySelection()) break;
+            showOutputModal(generateOutputText());
+            break;
+          }
+          case 'toggle-description': {
+            var key = action.getAttribute('data-key');
+            toggleDescription(key);
+            break;
+          }
+          case 'select-delivery': {
+            var key = action.getAttribute('data-key');
+            state.selectedDelivery = key;
+            break;
+          }
+        }
+      });
+
+      // Keyboard container click handler
+      kbContainer.addEventListener('click', function(e) {
+        var target = e.target;
+        var action = target.closest('[data-action]');
+        if (!action) return;
+        var actionName = action.getAttribute('data-action');
+
+        switch (actionName) {
+          case 'close-keyboard-bg': {
+            if (target === action) {
+              state.activeInputKey = null;
+              renderMainContent();
+              renderKeyboard();
+            }
+            break;
+          }
+          case 'kb-input': {
+            if (!state.activeInputKey) break;
+            var val = action.getAttribute('data-val');
+            var parts = state.activeInputKey.split(':');
+            var mainKey = parts[0], subKey = parts[1];
+            var ss = state.mainItems[mainKey].subItems[subKey];
+            var subConfig = getSubConfig(mainKey, subKey);
+            var isLumpSum = subConfig.type === 'lump-sum';
+
+            var currentField = isLumpSum ? ss.lumpSum : ss.quantity;
+            var currentStr = currentField > 0 ? String(currentField) : '';
+            var newStr = currentStr + val;
+            var newVal = parseInt(newStr, 10);
+            if (!isNaN(newVal) && newVal <= 9999999) {
+              if (isLumpSum) ss.lumpSum = newVal;
+              else ss.quantity = newVal;
+            }
+            updateInputDisplay();
+            break;
+          }
+          case 'kb-delete': {
+            if (!state.activeInputKey) break;
+            var parts = state.activeInputKey.split(':');
+            var mainKey = parts[0], subKey = parts[1];
+            var ss = state.mainItems[mainKey].subItems[subKey];
+            var subConfig = getSubConfig(mainKey, subKey);
+            var isLumpSum = subConfig.type === 'lump-sum';
+
+            var currentField = isLumpSum ? ss.lumpSum : ss.quantity;
+            var currentStr = String(currentField);
+            if (currentStr.length > 1) {
+              var newVal = parseInt(currentStr.slice(0, -1), 10);
+              if (isLumpSum) ss.lumpSum = newVal;
+              else ss.quantity = newVal;
+            } else {
+              if (isLumpSum) ss.lumpSum = 0;
+              else ss.quantity = 0;
+            }
+            updateInputDisplay();
+            break;
+          }
+          case 'kb-clear': {
+            if (!state.activeInputKey) break;
+            var parts = state.activeInputKey.split(':');
+            var mainKey = parts[0], subKey = parts[1];
+            var ss = state.mainItems[mainKey].subItems[subKey];
+            var subConfig = getSubConfig(mainKey, subKey);
+            if (subConfig.type === 'lump-sum') ss.lumpSum = 0;
+            else ss.quantity = 0;
+            updateInputDisplay();
+            break;
+          }
+          case 'kb-confirm': {
+            state.activeInputKey = null;
+            renderMainContent();
+            renderKeyboard();
+            break;
+          }
+        }
+      });
+
+      // Handle input changes (customer name + price)
+      app.addEventListener('input', function(e) {
+        var target = e.target;
+        var action = target.getAttribute('data-action');
+
+        if (action === 'change-customer-name') {
+          state.customerName = target.value;
+          return;
+        }
+
+        if (action === 'change-price') {
+          var mainKey = target.getAttribute('data-main');
+          var subKey = target.getAttribute('data-sub');
+          var numValue = parseFloat(target.value);
+          if (!isNaN(numValue) && numValue >= 0) {
+            state.mainItems[mainKey].subItems[subKey].price = numValue;
+          }
+        }
+      });
+
+      // Update total on price blur
+      app.addEventListener('focusout', function(e) {
+        var target = e.target;
+        if (target.getAttribute('data-action') === 'change-price') {
+          updateTotalsDisplay();
+        }
+      });
+    }
+
+    // ─── Init ──────────────────────────────────────────────────────────
+    render();
+    setupEvents();
+  </script>
+</body>
+</html>
