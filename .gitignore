@@ -67,3 +67,6 @@ Thumbs.db
 
 .coze-logs
 .cozeproj/reduction
+
+# Preview files
+.preview
