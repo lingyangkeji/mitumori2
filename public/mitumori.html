@@ -352,6 +352,7 @@
       }
       return {
         customerName: '',
+        creator: '李寧章',
         mainItems: mainItems,
         selectedDescriptions: {},
         selectedDelivery: null,
@@ -495,6 +496,21 @@
       html += '<div class="card">' +
         '<label style="display:block;font-size:15px;font-weight:600;color:var(--foreground);margin-bottom:12px;">顧客名</label>' +
         '<input type="text" id="customer-name" data-action="change-customer-name" class="customer-input" placeholder="顧客名を入力してください" value="' + escapeHtml(state.customerName) + '" />' +
+      '</div>';
+
+      // Creator
+      html += '<div class="card">' +
+        '<label style="display:block;font-size:15px;font-weight:600;color:var(--foreground);margin-bottom:12px;">作成者</label>' +
+        '<div style="display:flex;gap:20px;">' +
+          '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">' +
+            '<input type="radio" name="creator" value="李寧章" data-action="change-creator"' + (state.creator === '李寧章' ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--primary);" />' +
+            '<span style="font-size:15px;color:var(--foreground);">李寧章</span>' +
+          '</label>' +
+          '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">' +
+            '<input type="radio" name="creator" value="楊綿栄" data-action="change-creator"' + (state.creator === '楊綿栄' ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--primary);" />' +
+            '<span style="font-size:15px;color:var(--foreground);">楊綿栄</span>' +
+          '</label>' +
+        '</div>' +
       '</div>';
 
       // Main items
@@ -723,7 +739,7 @@
       }
 
       lines.push('ご確認、お願いします。');
-      lines.push('李　寧章');
+      lines.push(state.creator === '楊綿栄' ? '楊　綿栄' : '李　寧章');
 
       return lines.join('\n');
     }
@@ -934,6 +950,11 @@
 
         if (action === 'change-customer-name') {
           state.customerName = target.value;
+          return;
+        }
+
+        if (action === 'change-creator') {
+          state.creator = target.value;
           return;
         }
 

@@ -39,6 +39,7 @@ interface DeliveryOption {
 
 interface AppState {
   customerName: string;
+  creator: string; // '李寧章' or '楊綿栄'
   mainItems: Record<string, MainItemState>;
   selectedDescriptions: Set<string>;
   selectedDelivery: string | null;
@@ -161,6 +162,7 @@ function createInitialState(): AppState {
   }
   return {
     customerName: '',
+    creator: '李寧章',
     mainItems,
     selectedDescriptions: new Set(),
     selectedDelivery: null,
@@ -311,6 +313,23 @@ function renderMainContent(): void {
         <input type="text" id="customer-name" data-action="change-customer-name"
           class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base text-slate-800 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           placeholder="顧客名を入力してください" value="${escapeHtml(state.customerName)}" />
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+        <label class="block text-base font-semibold text-slate-700 mb-3">作成者</label>
+        <div class="flex gap-4">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="creator" value="李寧章" data-action="change-creator"
+              ${state.creator === '李寧章' ? 'checked' : ''}
+              class="w-5 h-5 text-blue-600 accent-blue-600" />
+            <span class="text-base text-slate-700">李寧章</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="creator" value="楊綿栄" data-action="change-creator"
+              ${state.creator === '楊綿栄' ? 'checked' : ''}
+              class="w-5 h-5 text-blue-600 accent-blue-600" />
+            <span class="text-base text-slate-700">楊綿栄</span>
+          </label>
+        </div>
       </div>
 
       <!-- Main Items Selection -->
@@ -583,7 +602,7 @@ function generateOutputText(): string {
   }
 
   lines.push('ご確認、お願いします。');
-  lines.push('李　寧章');
+  lines.push(state.creator === '楊綿栄' ? '楊　綿栄' : '李　寧章');
 
   return lines.join('\n');
 }
@@ -813,6 +832,11 @@ function setupEvents(): void {
 
     if (action === 'change-customer-name') {
       state.customerName = (target as HTMLInputElement).value;
+      return;
+    }
+
+    if (action === 'change-creator') {
+      state.creator = (target as HTMLInputElement).value;
       return;
     }
 
